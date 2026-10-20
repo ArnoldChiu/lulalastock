@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="投資淨值" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>投資淨值 Tracker v1.2</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#121820; --panel2:#18212b; --text:#f5f7fa; --muted:#96a1ad;
+      --line:#26323f; --accent:#4aa3ff; --green:#39d98a; --red:#ff6b6b; --yellow:#f7c948;
+      --safe-bottom: env(safe-area-inset-bottom,0px);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang TC","Noto Sans TC",sans-serif}
+    body{min-height:100vh}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{max-width:760px;margin:0 auto;padding:18px 16px calc(92px + var(--safe-bottom))}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+    h1{font-size:22px;margin:0}.sub{font-size:12px;color:var(--muted)}
+    .pill{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:9px 12px;border-radius:12px}
+    .grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+    .hero{font-size:30px;font-weight:700;letter-spacing:-.5px}.label{font-size:12px;color:var(--muted)}.value{font-size:18px;font-weight:650;margin-top:4px}
+    .acceleratorCard{background:var(--panel);border:2px solid var(--accent);border-radius:16px;padding:14px 16px;margin-top:14px}
+    .acceleratorTop{display:flex;justify-content:space-between;gap:12px;align-items:end}
+    .acceleratorLabel{font-size:15px;font-weight:800;letter-spacing:.2px}
+    .acceleratorValue{font-size:30px;font-weight:850;letter-spacing:-.4px}
+    .acceleratorSub{font-size:12px;color:var(--muted);margin-top:5px}
+    .privacyToggle{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:6px 9px;font-size:12px;min-height:34px}
+    .privacyToggle.active{border-color:var(--accent);color:#fff}
+    .profitHead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+    .pos{color:var(--green)}.neg{color:var(--red)}
+    .seg{display:flex;background:var(--panel2);border-radius:12px;padding:3px;gap:3px}
+    .seg button{flex:1;border:0;background:transparent;color:var(--muted);padding:8px 10px;border-radius:9px}
+    .seg button.active{background:var(--accent);color:white}
+    .chartbox{margin-top:10px;position:relative}.chart{width:100%;height:240px;display:block;touch-action:pan-y}
+    .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:6px}
+    .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+    .info3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .infoItem{background:var(--panel2);padding:9px;border-radius:11px;min-width:0}
+    .infoItem b{display:block;margin-top:3px;overflow-wrap:anywhere}
+    .sectionTitle{display:flex;justify-content:space-between;align-items:end;margin:18px 0 8px}.sectionTitle h2{font-size:16px;margin:0}
+    .formRow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .dateTools{display:flex;gap:7px;flex-wrap:wrap;margin:-2px 0 10px}
+    .dateTools button{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:8px 10px;border-radius:10px;min-height:40px}
+    .modeNote{margin:2px 0 12px;padding:9px 11px;border-radius:10px;background:var(--panel2);color:var(--muted);font-size:12px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:10px}
+    input,select{width:100%;margin-top:5px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:11px;padding:11px 12px;min-height:44px}
+    .acct{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:end}
+    .acctMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .carryHint{display:block;font-size:11px;color:var(--accent);margin-top:4px}
+    .supplementRow{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:end;margin:2px 0 8px;padding:10px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
+    .supplementTitle{font-weight:800}
+    .subAcct{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:end;margin:-4px 0 8px;padding-left:16px}
+    .subAcct .acctMeta{font-size:12px;color:var(--muted)}
+
+    .accountSetting{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:12px;margin-bottom:10px}
+    .accountSettingGrid{display:grid;grid-template-columns:1.4fr 1fr .7fr;gap:8px}
+    .accountSettingFoot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px}
+    .newAccountBox{border:1px dashed var(--line);border-radius:14px;padding:12px;margin:10px 0;background:rgba(255,255,255,.015)}
+    .importPreview{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--panel2)}
+    .previewGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
+    .previewStat{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px}
+    .previewStat b{display:block;margin-top:3px;font-size:18px}
+    .radioRow{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+    .radioRow label{margin:0;color:var(--text);font-size:13px}
+    .radioRow input{width:auto;min-height:0;margin:0 6px 0 0}
+    .warnList{max-height:130px;overflow:auto;font-size:12px;color:var(--muted);line-height:1.5}
+    @media(max-width:560px){.previewGrid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:560px){.accountSettingGrid{grid-template-columns:1fr 1fr}.accountSettingGrid label:first-child{grid-column:1/3}}
+    .fut{display:grid;grid-template-columns:1fr 72px 96px;gap:8px;align-items:end}
+    .btn{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:11px 14px;min-height:44px;font-weight:650}
+    .btn.secondary{background:var(--panel2);border:1px solid var(--line);color:var(--text);font-weight:500}
+    .btn.danger{background:transparent;border:1px solid #5a2a2a;color:#ff8b8b}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}.actions .btn{flex:1;min-width:120px}
+    table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}
+    .scroll{overflow-x:auto}.muted{color:var(--muted)}.small{font-size:12px}.note{font-size:12px;color:var(--muted);line-height:1.5}
+    .hidden{display:none!important}
+    .bottom{position:fixed;left:0;right:0;bottom:0;background:rgba(11,15,20,.94);backdrop-filter:blur(18px);border-top:1px solid var(--line);padding:8px 8px calc(8px + var(--safe-bottom));z-index:20}
+    .bottomInner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+    .navbtn{border:0;background:transparent;color:var(--muted);padding:8px 4px;border-radius:10px;font-size:11px}.navbtn.active{color:#fff;background:var(--panel2)}
+    .navIcon{display:block;font-size:20px;line-height:1.2;margin-bottom:2px}
+    .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#1d2732;border:1px solid var(--line);padding:10px 14px;border-radius:12px;font-size:13px;z-index:40;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1}
+    .rowTop{display:flex;justify-content:space-between;gap:10px;align-items:center}.right{text-align:right}
+    .tag{font-size:11px;padding:4px 7px;border-radius:8px;background:var(--panel2);color:var(--muted)}
+    @media(max-width:520px){.g4{grid-template-columns:repeat(2,1fr)}.acct{grid-template-columns:1fr 120px}.fut{grid-template-columns:1fr 65px 88px}.hero{font-size:27px}.chart{height:220px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div><h1>投資淨值</h1><div class="sub" id="todayLabel"></div></div>
+    <button class="pill" id="quickAdd">＋ 今日紀錄</button>
+  </div>
+
+  <section id="page-home">
+    <div class="card">
+      <div class="label">目前總資產</div>
+      <div class="hero" id="homeAsset">—</div>
+      <div class="rowTop"><div><span class="label">NAV</span> <b id="homeNav">—</b></div><div id="homeReturn" class="value">—</div></div>
+    </div>
+
+    <div class="grid g4" style="margin-top:12px">
+      <div class="card"><div class="label">累計報酬</div><div class="value" id="statReturn">—</div></div>
+      <div class="card"><div class="label">年化報酬</div><div class="value" id="statCagr">—</div></div>
+      <div class="card"><div class="label">最大回撤</div><div class="value" id="statMdd">—</div></div>
+      <div class="card">
+        <div class="profitHead">
+          <div class="label">累計損益</div>
+          <button class="privacyToggle" id="privacyBtnProfit" type="button">隱藏金額</button>
+        </div>
+        <div class="value" id="statProfit">—</div>
+      </div>
+    </div>
+
+    <div class="acceleratorCard">
+      <div class="acceleratorTop">
+        <div>
+          <div class="acceleratorLabel">倉位加速計</div>
+          <div class="acceleratorSub" id="acceleratorDate">依目前資料</div>
+        </div>
+        <div class="acceleratorValue" id="acceleratorValue">—</div>
+      </div>
+      <div class="acceleratorSub" id="acceleratorDetail">1倍現股 + 2倍ETF補充 + 綜合券商股票 + 期貨曝險 ÷ 總資產</div>
+    </div>
+
+    <div class="sectionTitle"><h2>趨勢</h2></div>
+    <div class="card">
+      <div class="seg"><button id="segNav" class="active">淨值曲線</button><button id="segAsset">資產成長</button></div>
+      <div class="info3">
+        <div class="infoItem"><span class="label">日期</span><b id="chartDate">—</b></div>
+        <div class="infoItem"><span class="label" id="chartL1">NAV</span><b id="chartV1">—</b></div>
+        <div class="infoItem"><span class="label" id="chartL2">單日報酬</span><b id="chartV2">—</b></div>
+      </div>
+      <div class="chartbox"><canvas id="homeChart" class="chart"></canvas></div>
+      <div class="note">在圖上左右滑動，可查看歷史任一天的數字。</div>
+    </div>
+
+    <div class="sectionTitle"><h2>曝險</h2><span class="small muted" id="exposureDateHint"></span></div>
+    <div class="grid g2">
+      <div class="card"><div class="label">期貨名目曝險</div><div class="value" id="futExposure">—</div></div>
+      <div class="card"><div class="label">期貨曝險 / 總資產</div><div class="value" id="futLev">—</div></div>
+    </div>
+  </section>
+
+  <section id="page-benchmark" class="hidden">
+    <div class="card">
+      <div class="rowTop"><div><div class="label">Benchmark</div><div class="value">我的 NAV vs 大盤</div></div>
+      <div class="tag">起點 = 100</div></div>
+      <label style="margin-top:12px"><input id="fxBench" type="checkbox" style="width:auto;min-height:0;margin-right:8px">S&P 500 換算 TWD 報酬</label>
+      <div class="info3">
+        <div class="infoItem"><span class="label">我的 NAV</span><b id="bMine">—</b></div>
+        <div class="infoItem"><span class="label">S&P 500</span><b id="bSp">—</b></div>
+        <div class="infoItem"><span class="label">台灣加權</span><b id="bTw">—</b></div>
+      </div>
+      <div class="chartbox"><canvas id="benchChart" class="chart"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#4aa3ff"></i>我的 NAV</span><span><i class="dot" style="background:#39d98a"></i>S&P 500</span><span><i class="dot" style="background:#f7c948"></i>台灣加權</span></div>
+      <div class="note">Benchmark 目前採手動輸入每日收盤值；日後可再改成自動抓資料。</div>
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><div class="label">相對 S&P 500</div><div class="value" id="alphaSp">—</div></div>
+      <div class="card"><div class="label">相對台灣加權</div><div class="value" id="alphaTw">—</div></div>
+    </div>
+  </section>
+
+  <section id="page-input" class="hidden">
+    <div class="card">
+      <div class="sectionTitle" style="margin-top:0"><h2>每日輸入</h2><span class="tag">TWD 為總資產基準</span></div>
+      <div class="formRow">
+        <label>日期<input type="date" id="inDate"></label>
+        <label>USD/TWD<input type="number" inputmode="decimal" step="0.001" id="inFx" placeholder="例：31.80"></label>
+      </div>
+      <div class="dateTools">
+        <button id="prevDate" type="button">← 前一天</button>
+        <button id="todayDate" type="button">今天</button>
+        <button id="nextDate" type="button">後一天 →</button>
+      </div>
+      <div id="entryMode" class="modeNote">新增模式：可選擇任何歷史日期。</div>
+      <div class="note" style="margin:-4px 0 12px">
+        電腦快捷鍵：Enter 下一格　・　Shift + Enter 上一格　・　Ctrl + Enter 儲存
+      </div>
+      <div id="accountInputs"></div>
+
+      <div class="sectionTitle"><h2>資金流</h2><span class="small muted">TWD / USD 分開記錄</span></div>
+      <div class="formRow">
+        <label>今日投入 TWD<input type="number" inputmode="decimal" step="1" id="inDeposit" value="0"></label>
+        <label>今日提出 TWD<input type="number" inputmode="decimal" step="1" id="inWithdraw" value="0"></label>
+      </div>
+      <div class="formRow">
+        <label>今日投入 USD<input type="number" inputmode="decimal" step="0.01" id="inDepositUsd" value="0"></label>
+        <label>今日提出 USD<input type="number" inputmode="decimal" step="0.01" id="inWithdrawUsd" value="0"></label>
+      </div>
+      <div class="note">USD 資金流會使用當日 USD/TWD 匯率換算成 TWD，供 NAV 與累計投入計算。</div>
+
+      <div class="sectionTitle"><h2>台股期貨</h2><span class="small muted">輸入口數與指數點位</span></div>
+      <div id="twFutures"></div>
+
+      <div class="sectionTitle"><h2>IBKR / 海外期貨</h2></div>
+      <div id="usFutures"></div>
+      <button class="btn secondary" id="addUsFut" type="button">＋ 新增海外期貨商品</button>
+
+      <div class="sectionTitle"><h2>Benchmark 收盤值</h2></div>
+      <div class="formRow">
+        <label>S&P 500<input type="number" inputmode="decimal" step="0.01" id="inSp" placeholder="收盤指數"></label>
+        <label>台灣加權<input type="number" inputmode="decimal" step="0.01" id="inTw" placeholder="收盤指數"></label>
+      </div>
+
+      <div class="actions" style="margin-top:12px">
+        <button class="btn" id="saveDaily" type="button">儲存今日資料</button>
+        <button class="btn secondary" id="carryPrev" type="button">重新帶入上一筆</button>
+        <button class="btn secondary" id="clearForm" type="button">清空</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="page-records" class="hidden">
+    <div class="sectionTitle" style="margin-top:0"><h2>歷史紀錄</h2></div>
+    <div class="card">
+      <div class="scroll"><table><thead><tr><th>日期</th><th>總資產</th><th>NAV</th><th>倉位加速計</th><th>期貨曝險</th><th></th></tr></thead><tbody id="recordsBody"></tbody></table></div>
+      <div class="note" style="margin-top:8px">點「編輯」會把該日資料帶回每日輸入頁；刪除後會重新計算後續 NAV。</div>
+    </div>
+  </section>
+
+  <section id="page-settings" class="hidden">
+    <div class="card">
+      <div class="sectionTitle" style="margin-top:0"><h2>帳戶 / 券商管理</h2><button class="btn secondary" id="addAccount" type="button">＋ 新增帳戶</button></div>
+      <div id="newAccountForm" class="newAccountBox hidden">
+        <div class="accountSettingGrid">
+          <label>帳戶名稱<input id="newAccountName" placeholder="例如：IBKR 主帳戶"></label>
+          <label>帳戶類型<select id="newAccountType"></select></label>
+          <label>幣別<select id="newAccountCurrency"><option>TWD</option><option>USD</option></select></label>
+        </div>
+        <div class="actions">
+          <button class="btn" id="createAccount" type="button">建立帳戶</button>
+          <button class="btn secondary" id="cancelAccount" type="button">取消</button>
+        </div>
+      </div>
+      <div id="settingsAccounts"></div>
+      <div class="note">帳戶名稱可以隨時自由修改。歷史資料綁定內部 ID，因此改名不會讓舊資料斷掉。停用帳戶也不會刪除歷史資料。</div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="sectionTitle" style="margin-top:0"><h2>備份 / 匯出</h2></div>
+      <div class="actions">
+        <button class="btn secondary" id="exportJson" type="button">匯出 JSON 備份</button>
+        <button class="btn secondary" id="exportFullCsv" type="button">匯出完整紀錄 CSV</button>
+        <button class="btn secondary" id="exportSummaryCsv" type="button">匯出績效摘要 CSV</button>
+        <label class="btn secondary" style="text-align:center;display:block">匯入 JSON<input id="importJson" type="file" accept="application/json,.json" style="display:none"></label>
+      </div>
+      <div class="note" style="margin-top:8px">完整紀錄 CSV 可用 Excel 批次修改後再匯回；績效摘要 CSV 只保留分析結果。</div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="sectionTitle" style="margin-top:0"><h2>CSV 批次更新</h2></div>
+      <label class="btn secondary" style="text-align:center;display:block">選擇完整紀錄 CSV
+        <input id="importCsv" type="file" accept=".csv,text/csv" style="display:none">
+      </label>
+      <div id="csvPreview" class="importPreview hidden">
+        <div class="rowTop">
+          <div><div class="font-medium">匯入預覽</div><div id="csvFileName" class="small muted"></div></div>
+          <span id="csvRowCount" class="tag"></span>
+        </div>
+        <div class="previewGrid">
+          <div class="previewStat"><span class="label">可新增</span><b id="csvAddCount">0</b></div>
+          <div class="previewStat"><span class="label">可更新</span><b id="csvUpdateCount">0</b></div>
+          <div class="previewStat"><span class="label">無變更</span><b id="csvSameCount">0</b></div>
+          <div class="previewStat"><span class="label">錯誤 / 略過</span><b id="csvErrorCount">0</b></div>
+        </div>
+        <div class="label">匯入模式</div>
+        <div class="radioRow">
+          <label><input type="radio" name="csvMode" value="both" checked>新增 + 更新</label>
+          <label><input type="radio" name="csvMode" value="add">只新增缺少日期</label>
+          <label><input type="radio" name="csvMode" value="update">只更新既有日期</label>
+        </div>
+        <div id="csvWarnings" class="warnList"></div>
+        <div class="actions" style="margin-top:10px">
+          <button class="btn" id="confirmCsvImport" type="button">確認匯入</button>
+          <button class="btn secondary" id="cancelCsvImport" type="button">取消</button>
+        </div>
+        <div class="note" style="margin-top:8px">確認匯入前會自動下載 JSON 備份，並在瀏覽器本機保存匯入前快照。</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="bottom">
+  <div class="bottomInner">
+    <button class="navbtn active" data-page="home"><span class="navIcon">⌂</span>首頁</button>
+    <button class="navbtn" data-page="benchmark"><span class="navIcon">≋</span>Benchmark</button>
+    <button class="navbtn" data-page="input"><span class="navIcon">＋</span>每日輸入</button>
+    <button class="navbtn" data-page="records"><span class="navIcon">☷</span>紀錄</button>
+    <button class="navbtn" data-page="settings"><span class="navIcon">⚙︎</span>設定</button>
+  </div>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const KEY='navTrackerPWA_v01';
+  const TW_MULT={MTX:10, MXF:50, TX:200};
+  const ACCOUNT_TYPES={
+    tw_stock:'台股證券',
+    tw_cash:'台股現金',
+    sub_broker:'美股複委託',
+    tw_futures:'台股期貨',
+    overseas:'海外券商',
+    other:'其他'
+  };
+  const DEFAULT_ACCOUNTS=[
+    {id:'tw1',name:'台股1',type:'tw_stock',currency:'TWD',enabled:true},
+    {id:'tw2',name:'台股2',type:'tw_stock',currency:'TWD',enabled:true},
+    {id:'tw3',name:'台股3',type:'tw_stock',currency:'TWD',enabled:true},
+    {id:'tw4',name:'台股4',type:'tw_stock',currency:'TWD',enabled:true},
+    {id:'cash1',name:'台股現金1',type:'tw_cash',currency:'TWD',enabled:true},
+    {id:'cash2',name:'台股現金2',type:'tw_cash',currency:'TWD',enabled:true},
+    {id:'sub1',name:'美股複委1',type:'sub_broker',currency:'USD',enabled:true},
+    {id:'tf1',name:'台股期貨1 權益',type:'tw_futures',currency:'TWD',enabled:true},
+    {id:'tf2',name:'台股期貨2 權益',type:'tw_futures',currency:'TWD',enabled:true},
+    {id:'ibkr',name:'IBKR 總資產',type:'overseas',currency:'USD',enabled:true}
+  ];
+  let state=load()||{accounts:DEFAULT_ACCOUNTS,records:[],settings:{fxBench:false,hideAmounts:false}};
+  let homeMode='nav', homeIndex=null, benchIndex=null, editingDate=null, draftRecord=null;
+
+  const $=s=>document.querySelector(s);
+  const $$=s=>Array.from(document.querySelectorAll(s));
+  const fmtMoney=n=>Number.isFinite(n)?'NT$ '+Math.round(n).toLocaleString('zh-TW'):'—';
+  const fmtPct=n=>Number.isFinite(n)?(n>=0?'+':'')+n.toFixed(2)+'%':'—';
+  const isAmountHidden=()=>!!state.settings.hideAmounts;
+  const displayMoney=n=>isAmountHidden()?'*****':fmtMoney(n);
+
+  const num=v=>{const x=Number(v);return Number.isFinite(x)?x:0};
+  const uid=()=>Math.random().toString(36).slice(2,9);
+  function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+  function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+  function inferType(a){
+    const n=(a.name||'').toLowerCase();
+    if(a.id&&a.id.startsWith('cash') || n.includes('現金'))return 'tw_cash';
+    if(a.id&&a.id.startsWith('tf') || n.includes('期貨'))return 'tw_futures';
+    if(a.id==='ibkr' || n.includes('ibkr') || n.includes('ft') || n.includes('cs'))return 'overseas';
+    if(a.id&&a.id.startsWith('sub') || n.includes('複委'))return 'sub_broker';
+    if(a.currency==='TWD')return 'tw_stock';
+    return 'other';
+  }
+  function migrateState(){
+    if(!state.accounts)state.accounts=[];
+    if(!state.records)state.records=[];
+    if(!state.settings)state.settings={fxBench:false,hideAmounts:false};
+    if(typeof state.settings.hideAmounts!=='boolean')state.settings.hideAmounts=false;
+    state.accounts.forEach(a=>{
+      if(!a.type)a.type=inferType(a);
+      if(!a.currency)a.currency='TWD';
+      if(typeof a.enabled!=='boolean')a.enabled=true;
+    });
+    state.records.forEach(r=>{
+      if(r.leveragedEtfSupplement===undefined)r.leveragedEtfSupplement=0;
+      if(!r.brokerStockValues)r.brokerStockValues={};
+    });
+  }
+  migrateState();
+  function toast(t){const x=$('#toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),1800)}
+  function today(){const d=new Date();return d.toISOString().slice(0,10)}
+  $('#todayLabel').textContent=new Intl.DateTimeFormat('zh-TW',{dateStyle:'full'}).format(new Date());
+  $('#inDate').value=today();
+
+  function addDays(dateStr,days){
+    const [y,m,d]=dateStr.split('-').map(Number);
+    const dt=new Date(Date.UTC(y,m-1,d));
+    dt.setUTCDate(dt.getUTCDate()+days);
+    return dt.toISOString().slice(0,10);
+  }
+  function getPreviousRecord(dateStr){
+    const prior=state.records.filter(r=>r.date<dateStr).sort((a,b)=>a.date.localeCompare(b.date));
+    return prior.length?prior[prior.length-1]:null;
+  }
+  function makeCarryDraft(dateStr){
+    const prev=getPreviousRecord(dateStr);
+    if(!prev){
+      return {
+        date:dateStr,fx:'',values:{},leveragedEtfSupplement:0,brokerStockValues:{},deposit:0,withdraw:0,depositUsd:0,withdrawUsd:0,
+        twFutures:{MTX:{qty:0,price:'',mult:10},MXF:{qty:0,price:'',mult:50},TX:{qty:0,price:'',mult:200}},
+        usFutures:[{symbol:'MES',qty:0,price:'',mult:5},{symbol:'MNQ',qty:0,price:'',mult:2}],
+        sp:'',tw:'',carriedFrom:null
+      };
+    }
+    const values={};
+    state.accounts.forEach(a=>{
+      if(prev.values && Object.prototype.hasOwnProperty.call(prev.values,a.id))values[a.id]=prev.values[a.id];
+    });
+    const twFutures={};
+    ['MTX','MXF','TX'].forEach(c=>{
+      const f=(prev.twFutures||{})[c]||{};
+      twFutures[c]={qty:num(f.qty),price:'',mult:TW_MULT[c]};
+    });
+    const usFutures=(prev.usFutures&&prev.usFutures.length?prev.usFutures:[{symbol:'MES',qty:0,mult:5},{symbol:'MNQ',qty:0,mult:2}])
+      .map(f=>({symbol:f.symbol||'',qty:num(f.qty),price:'',mult:num(f.mult)||1}));
+    return {
+      date:dateStr,fx:prev.fx||'',values,leveragedEtfSupplement:num(prev.leveragedEtfSupplement),brokerStockValues:{...(prev.brokerStockValues||{})},deposit:0,withdraw:0,depositUsd:0,withdrawUsd:0,
+      twFutures,usFutures,sp:'',tw:'',carriedFrom:prev.date
+    };
+  }
+  function updateEntryMode(){
+    const date=$('#inDate').value;
+    const exists=state.records.some(r=>r.date===date);
+    const box=$('#entryMode');
+    if(editingDate){
+      box.textContent='編輯模式：原日期 '+editingDate+'。日期也可以修改；儲存後會移動到新日期。';
+    }else if(draftRecord && draftRecord.carriedFrom){
+      box.textContent='新增模式：已沿用 '+draftRecord.carriedFrom+' 的帳戶淨值、2倍ETF補充、綜合券商股票金額、USD/TWD 與期貨口數。今日資金流、期貨價格與 Benchmark 不沿用。';
+    }else if(exists){
+      box.textContent='新增模式：'+date+' 已有紀錄；若儲存，系統會先詢問是否更新該日資料。';
+    }else{
+      box.textContent='新增模式：目前沒有更早的紀錄可沿用。';
+    }
+  }
+  function startNewRecord(dateStr=today(),navigate=true){
+    editingDate=null;
+    draftRecord=makeCarryDraft(dateStr);
+    if(navigate)page('input');else renderInput();
+  }
+  function applyDraft(d){
+    if(!d)return;
+    $('#inDate').value=d.date||today();
+    $('#inFx').value=d.fx??'';
+    $('#inLeveragedEtfSupplement').value=d.leveragedEtfSupplement||0;
+    $$('[data-broker-stock]').forEach(i=>{
+      const has=d.brokerStockValues && Object.prototype.hasOwnProperty.call(d.brokerStockValues,i.dataset.brokerStock);
+      i.value=has?d.brokerStockValues[i.dataset.brokerStock]:'';
+      const hint=i.closest('label')?.querySelector('.carryHint');
+      if(hint)hint.textContent=(d.carriedFrom&&has)?'沿用 '+d.carriedFrom:'';
+    });
+    $('#inDeposit').value=d.deposit||0;
+    $('#inWithdraw').value=d.withdraw||0;
+    $('#inDepositUsd').value=d.depositUsd||0;
+    $('#inWithdrawUsd').value=d.withdrawUsd||0;
+    $('#inSp').value=d.sp||'';
+    $('#inTw').value=d.tw||'';
+    $$('[data-acct]').forEach(i=>{
+      const has=d.values && Object.prototype.hasOwnProperty.call(d.values,i.dataset.acct);
+      i.value=has?d.values[i.dataset.acct]:'';
+      const hint=i.closest('label')?.querySelector('.carryHint');
+      if(hint)hint.textContent=(d.carriedFrom&&has)?'沿用 '+d.carriedFrom:'';
+    });
+    const supplementHint=$('#inLeveragedEtfSupplement')?.closest('label')?.querySelector('.carryHint');
+    if(supplementHint)supplementHint.textContent=d.carriedFrom?'沿用 '+d.carriedFrom:'';
+
+    ['MTX','MXF','TX'].forEach(c=>{
+      const f=(d.twFutures||{})[c]||{};
+      const q=$(`[data-twqty="${c}"]`),pr=$(`[data-twprice="${c}"]`);
+      if(q)q.value=f.qty??0;
+      if(pr)pr.value=f.price??'';
+    });
+    renderUsFutures(d.usFutures&&d.usFutures.length?d.usFutures:[{symbol:'MES',qty:0,price:'',mult:5},{symbol:'MNQ',qty:0,price:'',mult:2}]);
+    updateEntryMode();
+  }
+
+  function page(name){
+    ['home','benchmark','input','records','settings'].forEach(p=>$('#page-'+p).classList.toggle('hidden',p!==name));
+    $$('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.page===name));
+    if(name==='home')renderHome(); if(name==='benchmark')renderBenchmark(); if(name==='records')renderRecords(); if(name==='settings')renderSettings(); if(name==='input')renderInput();
+  }
+  $$('.navbtn').forEach(b=>b.addEventListener('click',()=>{
+    if(b.dataset.page==='input' && !editingDate){startNewRecord(today());return}
+    page(b.dataset.page);
+  }));
+  $('#quickAdd').addEventListener('click',()=>startNewRecord(today()));
+
+  function renderInput(){
+    const wrap=$('#accountInputs');wrap.innerHTML='';
+    const enabled=state.accounts.filter(a=>a.enabled);
+
+    function appendAccount(a){
+      const label=document.createElement('label');label.className='acct';
+      label.innerHTML=`<span><span class="acctMeta">${a.name}<span class="tag">${ACCOUNT_TYPES[a.type]||'其他'}</span><span class="tag">${a.currency}</span></span><span class="carryHint"></span></span>
+        <input data-acct="${a.id}" type="number" inputmode="decimal" step="0.01" placeholder="當日淨值">`;
+      wrap.appendChild(label);
+
+      // 海外綜合帳戶（IBKR / FT / CS 等）額外輸入股票金額
+      if(a.type==='overseas'){
+        const sub=document.createElement('label');sub.className='subAcct';
+        sub.innerHTML=`<span><span class="acctMeta">↳#${a.name} 股票金額，有倍數ETF的金額也請乘上對應倍數<span class="tag">${a.currency}</span></span><span class="carryHint"></span></span>
+          <input data-broker-stock="${a.id}" type="number" inputmode="decimal" step="0.01" placeholder="股票市值">`;
+        wrap.appendChild(sub);
+      }
+    }
+
+    // 先列台股證券帳戶
+    enabled.filter(a=>a.type==='tw_stock').forEach(appendAccount);
+
+    // 最後一個台股券商下面固定加入「2倍ETF補充」
+    const supplement=document.createElement('label');supplement.className='supplementRow';
+    supplement.innerHTML=`<span><span class="supplementTitle">#2倍ETF補充</span>
+      <span class="tag" style="margin-left:6px">TWD</span>
+      <span class="carryHint"></span>
+      <span class="small muted" style="display:block;margin-top:4px">只填「額外曝險」；例如 6萬的 3倍ETF，這裡填 12萬。</span></span>
+      <input id="inLeveragedEtfSupplement" type="number" inputmode="decimal" step="1" value="0" placeholder="額外曝險金額">`;
+    wrap.appendChild(supplement);
+
+    // 再列其他帳戶
+    enabled.filter(a=>a.type!=='tw_stock').forEach(appendAccount);
+    const tw=$('#twFutures');tw.innerHTML='';
+    [['MTX','微台'],['MXF','小台'],['TX','台指']].forEach(([code,name])=>{
+      const row=document.createElement('div');row.className='fut';
+      row.innerHTML=`<label>${name}<input data-twprice="${code}" type="number" inputmode="decimal" step="1" placeholder="點位"></label>
+      <label>口數<input data-twqty="${code}" type="number" inputmode="numeric" step="1" value="0"></label>
+      <div class="small muted" style="padding-bottom:14px">× NT$${TW_MULT[code]}/點</div>`;
+      tw.appendChild(row);
+    });
+    renderUsFutures([{symbol:'MES',qty:0,price:'',mult:5},{symbol:'MNQ',qty:0,price:'',mult:2}]);
+    if(editingDate)loadForm(editingDate);
+    else if(draftRecord)applyDraft(draftRecord);
+    else updateEntryMode();
+  }
+
+  function renderUsFutures(items){
+    const wrap=$('#usFutures');wrap.innerHTML='';
+    items.forEach((f,i)=>{
+      const row=document.createElement('div');row.className='fut';row.dataset.i=i;
+      row.innerHTML=`<label>商品<input data-us="symbol" value="${f.symbol||''}" placeholder="MES"></label>
+      <label>口數<input data-us="qty" type="number" step="1" value="${f.qty||0}"></label>
+      <label>價格<input data-us="price" type="number" step="0.01" value="${f.price||0}"></label>
+      <label style="grid-column:2/4">Multiplier<input data-us="mult" type="number" step="0.01" value="${f.mult||1}"></label>`;
+      wrap.appendChild(row);
+    });
+  }
+  $('#addUsFut').addEventListener('click',()=>{
+    const arr=collectUsFut();arr.push({symbol:'',qty:0,price:0,mult:1});renderUsFutures(arr)
+  });
+  function collectUsFut(){
+    return $$('#usFutures .fut').map(r=>({
+      symbol:r.querySelector('[data-us="symbol"]').value.trim().toUpperCase(),
+      qty:num(r.querySelector('[data-us="qty"]').value),
+      price:num(r.querySelector('[data-us="price"]').value),
+      mult:num(r.querySelector('[data-us="mult"]').value)
+    })).filter(x=>x.symbol||x.qty||x.price);
+  }
+
+  function collectForm(){
+    const fx=num($('#inFx').value)||1;
+    const values={};
+    $$('[data-acct]').forEach(i=>values[i.dataset.acct]=num(i.value));
+    const brokerStockValues={};
+    $$('[data-broker-stock]').forEach(i=>brokerStockValues[i.dataset.brokerStock]=num(i.value));
+    const twFutures={};
+    ['MTX','MXF','TX'].forEach(c=>twFutures[c]={qty:num($(`[data-twqty="${c}"]`).value),price:num($(`[data-twprice="${c}"]`).value),mult:TW_MULT[c]});
+    return {
+      date:$('#inDate').value,fx,values,
+      leveragedEtfSupplement:num($('#inLeveragedEtfSupplement').value),brokerStockValues,
+      deposit:num($('#inDeposit').value),withdraw:num($('#inWithdraw').value),
+      depositUsd:num($('#inDepositUsd').value),withdrawUsd:num($('#inWithdrawUsd').value),
+      twFutures,usFutures:collectUsFut(),sp:num($('#inSp').value),tw:num($('#inTw').value)
+    };
+  }
+  function loadForm(date){
+    const r=state.records.find(x=>x.date===date);if(!r)return;
+    $('#inDate').value=r.date;$('#inFx').value=r.fx||'';
+    $('#inLeveragedEtfSupplement').value=r.leveragedEtfSupplement||0;
+    $$('[data-broker-stock]').forEach(i=>{
+      i.value=(r.brokerStockValues&&r.brokerStockValues[i.dataset.brokerStock])??'';
+      const hint=i.closest('label')?.querySelector('.carryHint');if(hint)hint.textContent='';
+    });
+    $('#inDeposit').value=r.deposit||0;$('#inWithdraw').value=r.withdraw||0;
+    $('#inDepositUsd').value=r.depositUsd||0;$('#inWithdrawUsd').value=r.withdrawUsd||0;
+    $('#inSp').value=r.sp||'';$('#inTw').value=r.tw||'';
+    $$('[data-acct]').forEach(i=>{
+      i.value=(r.values&&r.values[i.dataset.acct])??'';
+      const hint=i.closest('label')?.querySelector('.carryHint');if(hint)hint.textContent='';
+    });
+    ['MTX','MXF','TX'].forEach(c=>{const f=(r.twFutures||{})[c]||{};$(`[data-twqty="${c}"]`).value=f.qty||0;$(`[data-twprice="${c}"]`).value=f.price||0});
+    renderUsFutures(r.usFutures&&r.usFutures.length?r.usFutures:[{symbol:'MES',qty:0,price:0,mult:5},{symbol:'MNQ',qty:0,price:0,mult:2}]);
+  }
+  function clearForm(){
+    const keepDate=$('#inDate').value||today();
+    editingDate=null;
+    draftRecord={
+      date:keepDate,fx:'',values:{},leveragedEtfSupplement:0,brokerStockValues:{},deposit:0,withdraw:0,depositUsd:0,withdrawUsd:0,
+      twFutures:{MTX:{qty:0,price:'',mult:10},MXF:{qty:0,price:'',mult:50},TX:{qty:0,price:'',mult:200}},
+      usFutures:[{symbol:'MES',qty:0,price:'',mult:5},{symbol:'MNQ',qty:0,price:'',mult:2}],sp:'',tw:'',carriedFrom:null
+    };
+    renderInput();
+  }
+  $('#clearForm').addEventListener('click',clearForm);
+  $('#carryPrev').addEventListener('click',()=>{
+    if(editingDate){toast('編輯模式不會覆蓋目前內容；請先用＋新增紀錄');return}
+    draftRecord=makeCarryDraft($('#inDate').value||today());renderInput();toast(draftRecord.carriedFrom?'已重新帶入 '+draftRecord.carriedFrom:'沒有更早的資料');
+  });
+
+  $('#inDate').addEventListener('change',()=>{
+    if(editingDate){updateEntryMode();return}
+    draftRecord=makeCarryDraft($('#inDate').value||today());renderInput();
+  });
+  function moveInputDate(days){
+    const d=addDays($('#inDate').value||today(),days);
+    if(editingDate){$('#inDate').value=d;updateEntryMode()}
+    else {draftRecord=makeCarryDraft(d);renderInput()}
+  }
+  $('#prevDate').addEventListener('click',()=>moveInputDate(-1));
+  $('#todayDate').addEventListener('click',()=>{
+    if(editingDate){$('#inDate').value=today();updateEntryMode()}
+    else {draftRecord=makeCarryDraft(today());renderInput()}
+  });
+  $('#nextDate').addEventListener('click',()=>moveInputDate(1));
+
+  function dailyEntryFields(){
+    const page=$('#page-input');
+    if(!page || page.classList.contains('hidden'))return [];
+    return Array.from(page.querySelectorAll('input:not([type="file"]):not([type="checkbox"]):not([disabled]), select:not([disabled])'))
+      .filter(el=>{
+        const style=window.getComputedStyle(el);
+        return style.display!=='none' && style.visibility!=='hidden' && el.offsetParent!==null;
+      });
+  }
+
+  function focusEntryField(el){
+    if(!el)return;
+    el.focus({preventScroll:true});
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    if(el instanceof HTMLInputElement){
+      const selectable=['text','search','tel','url','password','number'];
+      if(selectable.includes(el.type)){
+        requestAnimationFrame(()=>{
+          try{el.select()}catch(err){}
+        });
+      }
+    }
+  }
+
+  $('#page-input').addEventListener('keydown',e=>{
+    // Ctrl+Enter (or Command+Enter on Mac) saves the current day.
+    if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){
+      e.preventDefault();
+      $('#saveDaily').click();
+      return;
+    }
+
+    if(e.key!=='Enter')return;
+    const target=e.target;
+    if(!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement))return;
+    if(target.type==='checkbox' || target.type==='file')return;
+
+    e.preventDefault();
+    const fields=dailyEntryFields();
+    const idx=fields.indexOf(target);
+    if(idx<0)return;
+
+    if(e.shiftKey){
+      if(idx>0)focusEntryField(fields[idx-1]);
+      else focusEntryField(fields[0]);
+      return;
+    }
+
+    if(idx<fields.length-1){
+      focusEntryField(fields[idx+1]);
+    }else{
+      // At the final input, move to Save instead of auto-saving.
+      $('#saveDaily').focus({preventScroll:true});
+      $('#saveDaily').scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  });
+
+  $('#saveDaily').addEventListener('click',()=>{
+    const r=collectForm();if(!r.date){toast('請先選日期');return}
+    if(r.fx<=0){toast('請輸入有效 USD/TWD');return}
+
+    const existingIdx=state.records.findIndex(x=>x.date===r.date);
+
+    if(editingDate){
+      const originalIdx=state.records.findIndex(x=>x.date===editingDate);
+      if(r.date!==editingDate && existingIdx>=0){
+        if(!confirm(r.date+' 已有紀錄，是否用目前編輯內容覆蓋該日？'))return;
+        state.records=state.records.filter(x=>x.date!==r.date && x.date!==editingDate);
+        state.records.push(r);
+      }else if(originalIdx>=0){
+        state.records[originalIdx]=r;
+      }else{
+        state.records.push(r);
+      }
+    }else{
+      if(existingIdx>=0){
+        if(!confirm(r.date+' 已有紀錄，是否更新該日資料？'))return;
+        state.records[existingIdx]=r;
+      }else{
+        state.records.push(r);
+      }
+    }
+
+    state.records.sort((a,b)=>a.date.localeCompare(b.date));
+    recalc();save();editingDate=null;draftRecord=null;toast('已儲存 '+r.date);page('home');
+  });
+
+  function totalAsset(r){
+    return state.accounts.reduce((s,a)=>{
+      const v=num((r.values||{})[a.id]);return s+(a.currency==='USD'?v*r.fx:v)
+    },0);
+  }
+  function futuresExposureTwd(r){
+    let tw=0;Object.values(r.twFutures||{}).forEach(f=>tw+=Math.abs(num(f.qty)*num(f.price)*num(f.mult)));
+    let us=0;(r.usFutures||[]).forEach(f=>us+=Math.abs(num(f.qty)*num(f.price)*num(f.mult))*r.fx);
+    return tw+us;
+  }
+  function accountValueTwd(r,a){
+    const v=num((r.values||{})[a.id]);
+    return a.currency==='USD'?v*num(r.fx):v;
+  }
+  function autoSpotExposureTwd(r){
+    // 台股證券 + 美股複委託視為 1 倍現股
+    return state.accounts
+      .filter(a=>a.type==='tw_stock'||a.type==='sub_broker')
+      .reduce((s,a)=>s+accountValueTwd(r,a),0);
+  }
+  function overseasBrokerStockTwd(r){
+    return state.accounts
+      .filter(a=>a.type==='overseas')
+      .reduce((s,a)=>{
+        const v=num((r.brokerStockValues||{})[a.id]);
+        return s+(a.currency==='USD'?v*num(r.fx):v);
+      },0);
+  }
+  function recalc(){
+    let prevAsset=null,prevNav=100,cumFlow=0,initial=0;
+    state.records.sort((a,b)=>a.date.localeCompare(b.date));
+    state.records.forEach((r,i)=>{
+      r.asset=totalAsset(r);r.futExposure=futuresExposureTwd(r);
+      r.autoSpotExposure=autoSpotExposureTwd(r);
+      r.leveragedEtfSupplement=num(r.leveragedEtfSupplement);
+      r.overseasBrokerStockExposure=overseasBrokerStockTwd(r);
+      r.positionAccelerator=r.asset>0?(
+        r.autoSpotExposure+
+        r.leveragedEtfSupplement+
+        r.overseasBrokerStockExposure+
+        r.futExposure
+      )/r.asset:0;
+      r.netFlowTwd=num(r.deposit)-num(r.withdraw);
+      r.netFlowUsd=num(r.depositUsd)-num(r.withdrawUsd);
+      r.netFlow=r.netFlowTwd + r.netFlowUsd*num(r.fx);
+      if(i===0){r.daily=0;r.nav=100;initial=r.asset;cumFlow=0;r.invested=r.asset;}
+      else{
+        const base=prevAsset||1;r.daily=((r.asset-r.netFlow-prevAsset)/base);r.nav=prevNav*(1+r.daily);cumFlow+=r.netFlow;r.invested=initial+cumFlow;
+      }
+      r.profit=r.asset-r.invested;prevAsset=r.asset;prevNav=r.nav;
+    });
+  }
+  recalc();
+
+  function calcStats(){
+    if(!state.records.length)return {};
+    const first=state.records[0],last=state.records.at(-1),cum=last.nav/100-1;
+    const days=Math.max(1,(new Date(last.date)-new Date(first.date))/86400000);
+    const cagr=days>=30?Math.pow(last.nav/100,365/days)-1:null;
+    let peak=state.records[0].nav,mdd=0;
+    state.records.forEach(r=>{peak=Math.max(peak,r.nav);mdd=Math.min(mdd,r.nav/peak-1)});
+    return {cum,cagr,mdd,last};
+  }
+  function setClass(el,val){el.classList.remove('pos','neg');if(val>0)el.classList.add('pos');if(val<0)el.classList.add('neg')}
+
+
+  function updatePrivacyButtons(){
+    const hidden=isAmountHidden();
+    const b=$('#privacyBtnProfit');
+    if(!b)return;
+    b.textContent=hidden?'顯示金額':'隱藏金額';
+    b.classList.toggle('active',hidden);
+    b.setAttribute('aria-pressed',String(hidden));
+  }
+
+  function toggleAmountPrivacy(){
+    state.settings.hideAmounts=!state.settings.hideAmounts;
+    save();
+    updatePrivacyButtons();
+    renderHome();
+    renderRecords();
+    toast(state.settings.hideAmounts?'已隱藏金額':'已顯示金額');
+  }
+
+  $('#privacyBtnProfit').addEventListener('click',toggleAmountPrivacy);
+
+  function renderHome(){
+    recalc();const s=calcStats();
+    if(!s.last){['homeAsset','homeNav','homeReturn','statReturn','statCagr','statMdd','statProfit','futExposure','futLev','acceleratorValue'].forEach(id=>$('#'+id).textContent='—');$('#acceleratorDate').textContent='尚無資料';$('#acceleratorDetail').textContent='1倍現股 + 2倍ETF補充 + 綜合券商股票 + 期貨曝險 ÷ 總資產';updatePrivacyButtons();drawHome();return}
+    $('#homeAsset').textContent=displayMoney(s.last.asset);$('#homeNav').textContent=s.last.nav.toFixed(2);
+    $('#homeReturn').textContent=fmtPct(s.cum*100);setClass($('#homeReturn'),s.cum);
+    $('#statReturn').textContent=fmtPct(s.cum*100);setClass($('#statReturn'),s.cum);
+    $('#statCagr').textContent=s.cagr===null?'資料不足':fmtPct(s.cagr*100);if(s.cagr!==null)setClass($('#statCagr'),s.cagr);
+    $('#statMdd').textContent=fmtPct(s.mdd*100);setClass($('#statMdd'),s.mdd);
+    $('#statProfit').textContent=displayMoney(s.last.profit);setClass($('#statProfit'),s.last.profit);
+    updatePrivacyButtons();
+    homeIndex=homeIndex===null?state.records.length-1:Math.min(homeIndex,state.records.length-1);drawHome();updateHomeInfo();
+  }
+  $('#segNav').addEventListener('click',()=>{homeMode='nav';$('#segNav').classList.add('active');$('#segAsset').classList.remove('active');drawHome();updateHomeInfo()});
+  $('#segAsset').addEventListener('click',()=>{homeMode='asset';$('#segAsset').classList.add('active');$('#segNav').classList.remove('active');drawHome();updateHomeInfo()});
+  function updateHomeInfo(){
+    if(homeIndex==null||!state.records[homeIndex])return;
+    const r=state.records[homeIndex];$('#chartDate').textContent=r.date;
+    $('#acceleratorDate').textContent=r.date;
+    const exposureHint=$('#exposureDateHint');if(exposureHint)exposureHint.textContent=r.date;
+    $('#acceleratorValue').textContent=(Number.isFinite(r.positionAccelerator)?r.positionAccelerator:0).toFixed(2)+'x';
+    $('#futExposure').textContent=displayMoney(r.futExposure||0);
+    $('#futLev').textContent=r.asset?((r.futExposure||0)/r.asset).toFixed(2)+'x':'—';
+    $('#acceleratorDetail').textContent=isAmountHidden()
+      ? '1倍現股 ***** + ETF補充 ***** + 綜合券商股票 ***** + 期貨 ***** ÷ 總資產 *****'
+      : '1倍現股 '+fmtMoney(r.autoSpotExposure||0)+' + ETF補充 '+fmtMoney(r.leveragedEtfSupplement||0)+' + 綜合券商股票 '+fmtMoney(r.overseasBrokerStockExposure||0)+' + 期貨 '+fmtMoney(r.futExposure||0)+' ÷ 總資產 '+fmtMoney(r.asset||0);
+    if(homeMode==='nav'){$('#chartL1').textContent='NAV';$('#chartV1').textContent=r.nav.toFixed(2);$('#chartL2').textContent='單日報酬';$('#chartV2').textContent=fmtPct(r.daily*100)}
+    else{$('#chartL1').textContent='總資產';$('#chartV1').textContent=displayMoney(r.asset);$('#chartL2').textContent='累計投入';$('#chartV2').textContent=displayMoney(r.invested)}
+  }
+
+  function setupCanvas(canvas,drawer,pick){
+    function resize(){const dpr=window.devicePixelRatio||1,rect=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(rect.width*dpr));canvas.height=Math.max(1,Math.round(rect.height*dpr));drawer(canvas.getContext('2d'),rect.width,rect.height,dpr)}
+    new ResizeObserver(resize).observe(canvas);let dragging=false;
+    canvas.addEventListener('pointerdown',e=>{dragging=true;canvas.setPointerCapture(e.pointerId);pick(e.offsetX,canvas.clientWidth)});
+    canvas.addEventListener('pointermove',e=>{if(dragging)pick(e.offsetX,canvas.clientWidth)});
+    canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointercancel',()=>dragging=false);
+    return resize;
+  }
+  function drawLines(ctx,w,h,dpr,series,index,labels){
+    ctx.save();ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad={l:34,r:12,t:20,b:24};const vals=series.flatMap(s=>s.data).filter(Number.isFinite);
+    if(vals.length<2){ctx.fillStyle='#96a1ad';ctx.textAlign='center';ctx.font='13px -apple-system';ctx.fillText('至少需要 2 筆資料',w/2,h/2);ctx.restore();return}
+    let mn=Math.min(...vals),mx=Math.max(...vals);let span=mx-mn||1;mn-=span*.12;mx+=span*.12;
+    const n=Math.max(...series.map(s=>s.data.length)),x=i=>pad.l+i*(w-pad.l-pad.r)/Math.max(1,n-1),y=v=>pad.t+(mx-v)/(mx-mn)*(h-pad.t-pad.b);
+    ctx.strokeStyle='#26323f';ctx.lineWidth=1;for(let k=0;k<4;k++){const yy=pad.t+k*(h-pad.t-pad.b)/3;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke()}
+    series.forEach(s=>{ctx.strokeStyle=s.color;ctx.lineWidth=s.width||2.5;ctx.beginPath();s.data.forEach((v,i)=>{if(i===0)ctx.moveTo(x(i),y(v));else ctx.lineTo(x(i),y(v))});ctx.stroke()});
+    if(index!=null&&index>=0){ctx.strokeStyle='#7dbbff';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x(index),pad.t);ctx.lineTo(x(index),h-pad.b);ctx.stroke();series.forEach(s=>{const v=s.data[index];if(Number.isFinite(v)){ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(x(index),y(v),4,0,Math.PI*2);ctx.fill()}})}
+    ctx.fillStyle='#96a1ad';ctx.font='11px -apple-system';ctx.textAlign='left';ctx.fillText(labels?.[0]||'',pad.l,h-6);ctx.textAlign='right';ctx.fillText(labels?.at(-1)||'',w-pad.r,h-6);ctx.restore();
+  }
+
+  const redrawHome=setupCanvas($('#homeChart'),(ctx,w,h,dpr)=>{
+    const rs=state.records;
+    const series=homeMode==='nav'?[{data:rs.map(r=>r.nav),color:'#4aa3ff',width:3}]:
+      [{data:rs.map(r=>r.asset),color:'#4aa3ff',width:3},{data:rs.map(r=>r.invested),color:'#f7c948',width:2.5}];
+    drawLines(ctx,w,h,dpr,series,homeIndex,rs.map(r=>r.date.slice(5)));
+  },(x,w)=>{if(!state.records.length)return;homeIndex=Math.max(0,Math.min(state.records.length-1,Math.round(x/w*(state.records.length-1))));drawHome();updateHomeInfo()});
+  function drawHome(){redrawHome()}
+
+  function benchSeries(){
+    const rs=state.records.filter(r=>r.sp>0&&r.tw>0);
+    if(!rs.length)return {rs:[],mine:[],sp:[],tw:[]};
+    const base=rs[0],fx=$('#fxBench').checked;
+    return {rs,mine:rs.map(r=>r.nav/base.nav*100),sp:rs.map(r=>(r.sp/base.sp)*(fx?r.fx/base.fx:1)*100),tw:rs.map(r=>r.tw/base.tw*100)};
+  }
+  function renderBenchmark(){
+    $('#fxBench').checked=!!state.settings.fxBench;
+    const b=benchSeries();benchIndex=benchIndex===null?Math.max(0,b.rs.length-1):Math.min(benchIndex,Math.max(0,b.rs.length-1));
+    if(b.rs.length){const i=b.rs.length-1;$('#bMine').textContent=b.mine[i].toFixed(1);$('#bSp').textContent=b.sp[i].toFixed(1);$('#bTw').textContent=b.tw[i].toFixed(1);$('#alphaSp').textContent=fmtPct(b.mine[i]-b.sp[i]);$('#alphaTw').textContent=fmtPct(b.mine[i]-b.tw[i]);}
+    else{['bMine','bSp','bTw','alphaSp','alphaTw'].forEach(id=>$('#'+id).textContent='—')}
+    redrawBench();
+  }
+  $('#fxBench').addEventListener('change',e=>{state.settings.fxBench=e.target.checked;save();renderBenchmark()});
+  const redrawBench=setupCanvas($('#benchChart'),(ctx,w,h,dpr)=>{
+    const b=benchSeries();drawLines(ctx,w,h,dpr,[{data:b.mine,color:'#4aa3ff',width:3.2},{data:b.sp,color:'#39d98a'},{data:b.tw,color:'#f7c948'}],benchIndex,b.rs.map(r=>r.date.slice(5)));
+  },(x,w)=>{const b=benchSeries();if(!b.rs.length)return;benchIndex=Math.max(0,Math.min(b.rs.length-1,Math.round(x/w*(b.rs.length-1))));redrawBench()});
+
+  function renderRecords(){
+    recalc();const body=$('#recordsBody');body.innerHTML='';
+    [...state.records].reverse().forEach(r=>{
+      const tr=document.createElement('tr');tr.innerHTML=`<td>${r.date}</td><td>${displayMoney(r.asset)}</td><td>${r.nav.toFixed(2)}</td><td>${(r.positionAccelerator||0).toFixed(2)}x</td><td>${r.asset?(r.futExposure/r.asset).toFixed(2)+'x':'—'}</td><td>
+      <button class="pill small" data-edit="${r.date}">編輯</button> <button class="pill small" data-del="${r.date}">刪除</button></td>`;body.appendChild(tr);
+    });
+    $$('[data-edit]').forEach(b=>b.addEventListener('click',()=>{draftRecord=null;editingDate=b.dataset.edit;page('input');updateEntryMode()}));
+    $$('[data-del]').forEach(b=>b.addEventListener('click',()=>{if(confirm('確定刪除 '+b.dataset.del+'？')){state.records=state.records.filter(r=>r.date!==b.dataset.del);recalc();save();renderRecords();toast('已刪除')}}));
+  }
+
+  function typeOptions(selected){
+    return Object.entries(ACCOUNT_TYPES).map(([k,v])=>`<option value="${k}" ${selected===k?'selected':''}>${v}</option>`).join('');
+  }
+  function renderSettings(){
+    const wrap=$('#settingsAccounts');wrap.innerHTML='';
+    state.accounts.forEach(a=>{
+      const row=document.createElement('div');row.className='accountSetting';
+      row.innerHTML=`<div class="accountSettingGrid">
+        <label>顯示名稱<input data-sname="${a.id}" value="${a.name}"></label>
+        <label>類型<select data-stype="${a.id}">${typeOptions(a.type)}</select></label>
+        <label>幣別<select data-scur="${a.id}"><option ${a.currency==='TWD'?'selected':''}>TWD</option><option ${a.currency==='USD'?'selected':''}>USD</option></select></label>
+      </div>
+      <div class="accountSettingFoot">
+        <label style="margin:0"><input data-senable="${a.id}" type="checkbox" ${a.enabled?'checked':''} style="width:auto;min-height:0;margin-right:8px">啟用</label>
+        <span class="small muted">內部 ID：${a.id}</span>
+      </div>`;
+      wrap.appendChild(row);
+    });
+    $$('[data-sname],[data-stype],[data-scur],[data-senable]').forEach(el=>el.addEventListener('change',()=>{
+      const id=el.dataset.sname||el.dataset.stype||el.dataset.scur||el.dataset.senable;
+      const a=state.accounts.find(x=>x.id===id);if(!a)return;
+      if(el.dataset.sname)a.name=el.value.trim()||a.name;
+      if(el.dataset.stype)a.type=el.value;
+      if(el.dataset.scur)a.currency=el.value;
+      if(el.dataset.senable)a.enabled=el.checked;
+      save();draftRecord=null;toast('帳戶設定已儲存');
+    }));
+    $('#newAccountType').innerHTML=typeOptions($('#newAccountType').value||'tw_stock');
+  }
+
+  $('#addAccount').addEventListener('click',()=>{
+    $('#newAccountForm').classList.remove('hidden');
+    $('#newAccountName').focus();
+  });
+  $('#cancelAccount').addEventListener('click',()=>{
+    $('#newAccountForm').classList.add('hidden');
+    $('#newAccountName').value='';
+  });
+  $('#createAccount').addEventListener('click',()=>{
+    const name=$('#newAccountName').value.trim();
+    if(!name){toast('請輸入帳戶名稱');return}
+    state.accounts.push({
+      id:'acct_'+uid(),
+      name,
+      type:$('#newAccountType').value||'other',
+      currency:$('#newAccountCurrency').value||'TWD',
+      enabled:true
+    });
+    save();draftRecord=null;
+    $('#newAccountForm').classList.add('hidden');$('#newAccountName').value='';
+    renderSettings();toast('已新增帳戶：'+name);
+  });
+
+
+  function csvEscape(v){
+    if(v===null||v===undefined)return '';
+    const s=String(v);
+    return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+  }
+
+  function parseCsv(text){
+    text=text.replace(/^\ufeff/,'');
+    const rows=[]; let row=[],field='',quoted=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i];
+      if(quoted){
+        if(ch==='"'){
+          if(text[i+1]==='"'){field+='"';i++} else quoted=false;
+        } else field+=ch;
+      }else{
+        if(ch==='"')quoted=true;
+        else if(ch===','){row.push(field);field=''}
+        else if(ch==='\n'){row.push(field);rows.push(row);row=[];field=''}
+        else if(ch!=='\r')field+=ch;
+      }
+    }
+    if(field!==''||row.length){row.push(field);rows.push(row)}
+    return rows.filter(r=>r.some(x=>x!==''));
+  }
+
+  function uniqueUsSymbols(){
+    const s=new Set();
+    state.records.forEach(r=>(r.usFutures||[]).forEach(f=>{
+      const x=(f.symbol||'').trim().toUpperCase(); if(x)s.add(x);
+    }));
+    return [...s].sort();
+  }
+
+  function fullCsvColumns(){
+    const cols=[['date','date'],['fx','usd_twd']];
+    state.accounts.forEach(a=>cols.push(['acct:'+a.id,'acct:'+a.id+':'+a.name]));
+    cols.push(['leveragedEtfSupplement','leveraged_etf_supplement_twd']);
+    state.accounts.filter(a=>a.type==='overseas').forEach(a=>{
+      cols.push(['brokerstock:'+a.id,'brokerstock:'+a.id+':'+a.name]);
+    });
+    cols.push(['deposit','deposit_twd'],['withdraw','withdraw_twd'],['depositUsd','deposit_usd'],['withdrawUsd','withdraw_usd']);
+    ['MTX','MXF','TX'].forEach(c=>{
+      cols.push(['twfut:'+c+':qty','twfut:'+c+':qty'],['twfut:'+c+':price','twfut:'+c+':price']);
+    });
+    uniqueUsSymbols().forEach(s=>{
+      cols.push(['usfut:'+s+':qty','usfut:'+s+':qty'],['usfut:'+s+':price','usfut:'+s+':price'],['usfut:'+s+':mult','usfut:'+s+':mult']);
+    });
+    cols.push(
+      ['sp','sp500'],['tw','taiwan_index'],
+      ['asset','calc_total_asset_twd'],['nav','calc_nav'],['daily','calc_daily_return_pct'],
+      ['invested','calc_invested_twd'],['profit','calc_profit_twd'],
+      ['autoSpotExposure','calc_1x_spot_exposure_twd'],['overseasBrokerStockExposure','calc_overseas_broker_stock_twd'],['futExposure','calc_futures_exposure_twd'],['futLev','calc_futures_leverage'],['positionAccelerator','calc_position_accelerator']
+    );
+    return cols;
+  }
+
+  function fullCsvValue(r,key){
+    if(key==='date')return r.date;
+    if(key==='fx')return r.fx??'';
+    if(key.startsWith('acct:')){
+      const id=key.split(':')[1];
+      return r.values&&Object.prototype.hasOwnProperty.call(r.values,id)?r.values[id]:'';
+    }
+    if(key==='leveragedEtfSupplement')return r.leveragedEtfSupplement||0;
+    if(key.startsWith('brokerstock:')){
+      const id=key.split(':')[1];
+      return (r.brokerStockValues&&Object.prototype.hasOwnProperty.call(r.brokerStockValues,id))?r.brokerStockValues[id]:'';
+    }
+    if(key==='deposit')return r.deposit||0;
+    if(key==='withdraw')return r.withdraw||0;
+    if(key==='depositUsd')return r.depositUsd||0;
+    if(key==='withdrawUsd')return r.withdrawUsd||0;
+    if(key.startsWith('twfut:')){
+      const [,code,field]=key.split(':');
+      return ((r.twFutures||{})[code]||{})[field]??'';
+    }
+    if(key.startsWith('usfut:')){
+      const [,sym,field]=key.split(':');
+      const f=(r.usFutures||[]).find(x=>(x.symbol||'').toUpperCase()===sym);
+      return f?(f[field]??''):'';
+    }
+    if(key==='sp')return r.sp||'';
+    if(key==='tw')return r.tw||'';
+    if(key==='asset')return r.asset??'';
+    if(key==='nav')return r.nav??'';
+    if(key==='daily')return Number.isFinite(r.daily)?r.daily*100:'';
+    if(key==='invested')return r.invested??'';
+    if(key==='profit')return r.profit??'';
+    if(key==='autoSpotExposure')return r.autoSpotExposure??'';
+    if(key==='overseasBrokerStockExposure')return r.overseasBrokerStockExposure??'';
+    if(key==='futExposure')return r.futExposure??'';
+    if(key==='futLev')return r.asset?r.futExposure/r.asset:'';
+    if(key==='positionAccelerator')return r.positionAccelerator??'';
+    return '';
+  }
+
+  function exportFullCsv(){
+    recalc();
+    const cols=fullCsvColumns();
+    const lines=[cols.map(c=>csvEscape(c[1])).join(',')];
+    state.records.forEach(r=>lines.push(cols.map(c=>csvEscape(fullCsvValue(r,c[0]))).join(',')));
+    download('investment-nav-full-records.csv','\ufeff'+lines.join('\n'),'text/csv;charset=utf-8');
+  }
+
+  function exportSummaryCsv(){
+    recalc();
+    const head=['date','total_asset_twd','nav','daily_return_pct','spot_1x_exposure_twd','leveraged_etf_supplement_twd','overseas_broker_stock_twd','deposit_twd','withdraw_twd','deposit_usd','withdraw_usd','net_flow_twd_equiv','invested_twd','profit_twd','futures_exposure_twd','futures_leverage','position_accelerator','usd_twd','sp500','taiwan_index'];
+    const rows=state.records.map(r=>[
+      r.date,r.asset,r.nav,r.daily*100,r.autoSpotExposure||0,r.leveragedEtfSupplement||0,r.overseasBrokerStockExposure||0,r.deposit||0,r.withdraw||0,r.depositUsd||0,r.withdrawUsd||0,
+      r.netFlow||0,r.invested,r.profit,r.futExposure,r.asset?r.futExposure/r.asset:0,r.positionAccelerator||0,r.fx,r.sp,r.tw
+    ].map(csvEscape).join(','));
+    download('investment-nav-summary.csv','\ufeff'+[head.join(','),...rows].join('\n'),'text/csv;charset=utf-8');
+  }
+
+  function cloneObj(x){return JSON.parse(JSON.stringify(x))}
+
+  function manualComparable(r){
+    const o={
+      date:r.date||'',fx:num(r.fx),values:{},leveragedEtfSupplement:num(r.leveragedEtfSupplement),brokerStockValues:{},
+      deposit:num(r.deposit),withdraw:num(r.withdraw),depositUsd:num(r.depositUsd),withdrawUsd:num(r.withdrawUsd),
+      twFutures:{},usFutures:[],sp:num(r.sp),tw:num(r.tw)
+    };
+    state.accounts.forEach(a=>o.values[a.id]=num((r.values||{})[a.id]));
+    state.accounts.filter(a=>a.type==='overseas').forEach(a=>{
+      o.brokerStockValues[a.id]=num((r.brokerStockValues||{})[a.id]);
+    });
+    ['MTX','MXF','TX'].forEach(c=>{
+      const f=((r.twFutures||{})[c]||{});
+      o.twFutures[c]={qty:num(f.qty),price:num(f.price),mult:TW_MULT[c]};
+    });
+    o.usFutures=(r.usFutures||[]).map(f=>({
+      symbol:(f.symbol||'').trim().toUpperCase(),qty:num(f.qty),price:num(f.price),mult:num(f.mult)||1
+    })).filter(f=>f.symbol).sort((a,b)=>a.symbol.localeCompare(b.symbol));
+    return o;
+  }
+  function sameManual(a,b){return JSON.stringify(manualComparable(a))===JSON.stringify(manualComparable(b))}
+
+  let pendingCsvImport=null;
+
+  function parseFullCsvToRecords(text){
+    const t=parseCsv(text);
+    if(t.length<2)throw new Error('CSV 沒有資料列');
+    const headers=t[0].map(x=>x.trim());
+    const idx=new Map(headers.map((h,i)=>[h,i]));
+    if(!idx.has('date'))throw new Error('找不到 date 欄位');
+
+    const acctCols=[];
+    headers.forEach((h,i)=>{
+      if(h.startsWith('acct:')){
+        const p=h.split(':');
+        if(p[1])acctCols.push({i,id:p[1],header:h});
+      }
+    });
+
+    const brokerStockCols=[];
+    headers.forEach((h,i)=>{
+      if(h.startsWith('brokerstock:')){
+        const p=h.split(':');
+        if(p[1])brokerStockCols.push({i,id:p[1],header:h});
+      }
+    });
+
+    const usSyms=new Set();
+    headers.forEach(h=>{
+      const m=h.match(/^usfut:([^:]+):(qty|price|mult)$/);
+      if(m)usSyms.add(m[1].toUpperCase());
+    });
+
+    const warnings=[],errors=[],records=[];
+    acctCols.forEach(c=>{
+      if(!state.accounts.some(a=>a.id===c.id))warnings.push('找不到帳戶 '+c.header+'，此欄會略過。');
+    });
+    brokerStockCols.forEach(c=>{
+      if(!state.accounts.some(a=>a.id===c.id))warnings.push('找不到綜合券商 '+c.header+'，此股票金額欄會略過。');
+    });
+
+    const cell=(row,name)=>{
+      const i=idx.get(name); return i===undefined?'':(row[i]??'').trim();
+    };
+    const ncell=(row,name,def=0)=>{
+      const v=cell(row,name); if(v==='')return def;
+      const n=Number(v.replace(/,/g,'')); return Number.isFinite(n)?n:def;
+    };
+
+    for(let ri=1;ri<t.length;ri++){
+      const row=t[ri],rawDate=cell(row,'date');
+      const normalizeCsvDate=s=>{
+        const m=String(s||'').trim().match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+        if(!m)return null;
+        const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]);
+        const dt=new Date(Date.UTC(y,mo-1,d));
+        if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return null;
+        return String(y).padStart(4,'0')+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      };
+      const date=normalizeCsvDate(rawDate);
+      if(!date){
+        errors.push('第 '+(ri+1)+' 列日期格式錯誤：'+(rawDate||'(空白)')); continue;
+      }
+
+      const old=state.records.find(r=>r.date===date);
+      const r=old?cloneObj(old):{
+        date,fx:0,values:{},leveragedEtfSupplement:0,brokerStockValues:{},deposit:0,withdraw:0,depositUsd:0,withdrawUsd:0,
+        twFutures:{MTX:{qty:0,price:0,mult:10},MXF:{qty:0,price:0,mult:50},TX:{qty:0,price:0,mult:200}},
+        usFutures:[],sp:0,tw:0
+      };
+
+      r.date=date;
+      if(idx.has('usd_twd'))r.fx=ncell(row,'usd_twd',r.fx||0);
+
+      acctCols.forEach(c=>{
+        if(!state.accounts.some(a=>a.id===c.id))return;
+        const raw=(row[c.i]??'').trim();
+        if(raw!==''){
+          const n=Number(raw.replace(/,/g,'')); if(Number.isFinite(n))r.values[c.id]=n;
+        }
+      });
+
+      if(idx.has('leveraged_etf_supplement_twd'))r.leveragedEtfSupplement=ncell(row,'leveraged_etf_supplement_twd',r.leveragedEtfSupplement||0);
+      r.brokerStockValues=r.brokerStockValues||{};
+      brokerStockCols.forEach(c=>{
+        if(!state.accounts.some(a=>a.id===c.id))return;
+        const raw=(row[c.i]??'').trim();
+        if(raw!==''){
+          const n=Number(raw.replace(/,/g,''));if(Number.isFinite(n))r.brokerStockValues[c.id]=n;
+        }
+      });
+      if(idx.has('deposit_twd'))r.deposit=ncell(row,'deposit_twd',r.deposit||0);
+      if(idx.has('withdraw_twd'))r.withdraw=ncell(row,'withdraw_twd',r.withdraw||0);
+      if(idx.has('deposit_usd'))r.depositUsd=ncell(row,'deposit_usd',r.depositUsd||0);
+      if(idx.has('withdraw_usd'))r.withdrawUsd=ncell(row,'withdraw_usd',r.withdrawUsd||0);
+
+      ['MTX','MXF','TX'].forEach(c=>{
+        r.twFutures=r.twFutures||{};
+        r.twFutures[c]=r.twFutures[c]||{qty:0,price:0,mult:TW_MULT[c]};
+        if(idx.has('twfut:'+c+':qty'))r.twFutures[c].qty=ncell(row,'twfut:'+c+':qty',r.twFutures[c].qty||0);
+        if(idx.has('twfut:'+c+':price'))r.twFutures[c].price=ncell(row,'twfut:'+c+':price',r.twFutures[c].price||0);
+        r.twFutures[c].mult=TW_MULT[c];
+      });
+
+      const fm=new Map((r.usFutures||[]).map(f=>[(f.symbol||'').toUpperCase(),{...f}]));
+      usSyms.forEach(s=>{
+        const f=fm.get(s)||{symbol:s,qty:0,price:0,mult:1};
+        if(idx.has('usfut:'+s+':qty'))f.qty=ncell(row,'usfut:'+s+':qty',f.qty||0);
+        if(idx.has('usfut:'+s+':price'))f.price=ncell(row,'usfut:'+s+':price',f.price||0);
+        if(idx.has('usfut:'+s+':mult'))f.mult=ncell(row,'usfut:'+s+':mult',f.mult||1)||1;
+        fm.set(s,f);
+      });
+      r.usFutures=[...fm.values()].filter(f=>f.symbol);
+
+      if(idx.has('sp500'))r.sp=ncell(row,'sp500',r.sp||0);
+      if(idx.has('taiwan_index'))r.tw=ncell(row,'taiwan_index',r.tw||0);
+
+      if(r.fx<=0)warnings.push(date+' 的 USD/TWD 為 0 或空白；若有 USD 帳戶，總資產會不正確。');
+      records.push(r);
+    }
+    return {records,errors,warnings};
+  }
+
+  function classifyImport(records){
+    let add=0,update=0,same=0;
+    records.forEach(r=>{
+      const old=state.records.find(x=>x.date===r.date);
+      if(!old)add++; else if(sameManual(old,r))same++; else update++;
+    });
+    return {add,update,same};
+  }
+
+  function showCsvPreview(name,p){
+    const c=classifyImport(p.records);
+    pendingCsvImport={...p,...c,name};
+    $('#csvPreview').classList.remove('hidden');
+    $('#csvFileName').textContent=name;
+    $('#csvRowCount').textContent=p.records.length+' 筆有效資料';
+    $('#csvAddCount').textContent=c.add;
+    $('#csvUpdateCount').textContent=c.update;
+    $('#csvSameCount').textContent=c.same;
+    $('#csvErrorCount').textContent=p.errors.length;
+    const msgs=[...p.errors.map(x=>'錯誤：'+x),...p.warnings.map(x=>'注意：'+x)];
+    $('#csvWarnings').innerHTML=msgs.length?msgs.map(x=>'<div>'+x.replace(/</g,'&lt;')+'</div>').join(''):'<div>檢查完成，沒有發現格式警告。</div>';
+  }
+
+  function hideCsvPreview(){
+    pendingCsvImport=null;
+    $('#csvPreview').classList.add('hidden');
+    $('#importCsv').value='';
+  }
+
+  function download(name,text,type){
+    const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
+  $('#exportJson').addEventListener('click',()=>download('investment-nav-backup.json',JSON.stringify(state,null,2),'application/json'));
+  $('#exportFullCsv').addEventListener('click',exportFullCsv);
+  $('#exportSummaryCsv').addEventListener('click',exportSummaryCsv);
+
+  $('#importCsv').addEventListener('change',async e=>{
+    const f=e.target.files[0]; if(!f)return;
+    try{showCsvPreview(f.name,parseFullCsvToRecords(await f.text()))}
+    catch(err){hideCsvPreview();alert('CSV 無法讀取：'+(err.message||'格式錯誤'))}
+  });
+
+  $('#cancelCsvImport').addEventListener('click',hideCsvPreview);
+
+  $('#confirmCsvImport').addEventListener('click',()=>{
+    if(!pendingCsvImport){toast('請先選擇 CSV');return}
+    const mode=(document.querySelector('input[name="csvMode"]:checked')||{}).value||'both';
+
+    const backup=JSON.stringify(state,null,2);
+    localStorage.setItem(KEY+'_preimport_backup',backup);
+    const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+    download('investment-nav-preimport-'+stamp+'.json',backup,'application/json');
+
+    let added=0,updated=0,skipped=0;
+    pendingCsvImport.records.forEach(r=>{
+      const i=state.records.findIndex(x=>x.date===r.date);
+      if(i<0){
+        if(mode==='update'){skipped++;return}
+        state.records.push(r);added++;
+      }else{
+        if(mode==='add'){skipped++;return}
+        if(sameManual(state.records[i],r)){skipped++;return}
+        state.records[i]=r;updated++;
+      }
+    });
+
+    state.records.sort((a,b)=>a.date.localeCompare(b.date));
+    recalc();save();draftRecord=null;
+    hideCsvPreview();renderHome();renderRecords();
+    toast('CSV 完成：新增 '+added+'、更新 '+updated+'、略過 '+skipped);
+  });
+
+  $('#importJson').addEventListener('change',async e=>{
+    const f=e.target.files[0];if(!f)return;try{const obj=JSON.parse(await f.text());if(!obj.accounts||!obj.records)throw new Error();state=obj;migrateState();recalc();save();draftRecord=null;renderSettings();renderInput();toast('JSON 已匯入')}catch(err){alert('JSON 格式不正確')}e.target.value=''
+  });
+
+  if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+  renderInput();renderHome();
+})();
+</script>
+</body>
+</html>
