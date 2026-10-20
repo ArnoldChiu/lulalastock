@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="投資淨值" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>投資淨值 Tracker v1.2</title>
+  <title>投資淨值 Tracker v1.3</title>
   <style>
     :root{
       --bg:#0b0f14; --panel:#121820; --panel2:#18212b; --text:#f5f7fa; --muted:#96a1ad;
@@ -45,6 +45,8 @@
     .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:6px}
     .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
     .info3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .info3.four{grid-template-columns:repeat(4,1fr)}
+    @media(max-width:760px){.info3.four{grid-template-columns:repeat(2,1fr)}}
     .infoItem{background:var(--panel2);padding:9px;border-radius:11px;min-width:0}
     .infoItem b{display:block;margin-top:3px;overflow-wrap:anywhere}
     .sectionTitle{display:flex;justify-content:space-between;align-items:end;margin:18px 0 8px}.sectionTitle h2{font-size:16px;margin:0}
@@ -135,10 +137,11 @@
     <div class="sectionTitle"><h2>趨勢</h2></div>
     <div class="card">
       <div class="seg"><button id="segNav" class="active">淨值曲線</button><button id="segAsset">資產成長</button></div>
-      <div class="info3">
+      <div class="info3" id="homeInfoGrid">
         <div class="infoItem"><span class="label">日期</span><b id="chartDate">—</b></div>
         <div class="infoItem"><span class="label" id="chartL1">NAV</span><b id="chartV1">—</b></div>
         <div class="infoItem"><span class="label" id="chartL2">單日報酬</span><b id="chartV2">—</b></div>
+        <div class="infoItem hidden" id="dailyProfitBox"><span class="label">單日損益</span><b id="chartDailyProfit">—</b></div>
       </div>
       <div class="chartbox"><canvas id="homeChart" class="chart"></canvas></div>
       <div class="note">在圖上左右滑動，可查看歷史任一天的數字。</div>
@@ -739,9 +742,21 @@
       r.netFlowTwd=num(r.deposit)-num(r.withdraw);
       r.netFlowUsd=num(r.depositUsd)-num(r.withdrawUsd);
       r.netFlow=r.netFlowTwd + r.netFlowUsd*num(r.fx);
-      if(i===0){r.daily=0;r.nav=100;initial=r.asset;cumFlow=0;r.invested=r.asset;}
+      if(i===0){
+        r.daily=0;
+        r.dailyProfit=null;
+        r.nav=100;
+        initial=r.asset;
+        cumFlow=0;
+        r.invested=r.asset;
+      }
       else{
-        const base=prevAsset||1;r.daily=((r.asset-r.netFlow-prevAsset)/base);r.nav=prevNav*(1+r.daily);cumFlow+=r.netFlow;r.invested=initial+cumFlow;
+        r.dailyProfit=r.asset-r.netFlow-prevAsset;
+        const base=prevAsset||1;
+        r.daily=r.dailyProfit/base;
+        r.nav=prevNav*(1+r.daily);
+        cumFlow+=r.netFlow;
+        r.invested=initial+cumFlow;
       }
       r.profit=r.asset-r.invested;prevAsset=r.asset;prevNav=r.nav;
     });
@@ -805,8 +820,26 @@
     $('#acceleratorDetail').textContent=isAmountHidden()
       ? '1倍現股 ***** + ETF補充 ***** + 綜合券商股票 ***** + 期貨 ***** ÷ 總資產 *****'
       : '1倍現股 '+fmtMoney(r.autoSpotExposure||0)+' + ETF補充 '+fmtMoney(r.leveragedEtfSupplement||0)+' + 綜合券商股票 '+fmtMoney(r.overseasBrokerStockExposure||0)+' + 期貨 '+fmtMoney(r.futExposure||0)+' ÷ 總資產 '+fmtMoney(r.asset||0);
-    if(homeMode==='nav'){$('#chartL1').textContent='NAV';$('#chartV1').textContent=r.nav.toFixed(2);$('#chartL2').textContent='單日報酬';$('#chartV2').textContent=fmtPct(r.daily*100)}
-    else{$('#chartL1').textContent='總資產';$('#chartV1').textContent=displayMoney(r.asset);$('#chartL2').textContent='累計投入';$('#chartV2').textContent=displayMoney(r.invested)}
+    const infoGrid=$('#homeInfoGrid');
+    const dailyProfitBox=$('#dailyProfitBox');
+
+    if(homeMode==='nav'){
+      $('#chartL1').textContent='NAV';
+      $('#chartV1').textContent=r.nav.toFixed(2);
+      $('#chartL2').textContent='單日報酬';
+      $('#chartV2').textContent=fmtPct(r.daily*100);
+      dailyProfitBox.classList.add('hidden');
+      infoGrid.classList.remove('four');
+    }
+    else{
+      $('#chartL1').textContent='總資產';
+      $('#chartV1').textContent=displayMoney(r.asset);
+      $('#chartL2').textContent='累計投入';
+      $('#chartV2').textContent=displayMoney(r.invested);
+      $('#chartDailyProfit').textContent=r.dailyProfit===null?'—':displayMoney(r.dailyProfit);
+      dailyProfitBox.classList.remove('hidden');
+      infoGrid.classList.add('four');
+    }
   }
 
   function setupCanvas(canvas,drawer,pick){
@@ -842,17 +875,48 @@
     const base=rs[0],fx=$('#fxBench').checked;
     return {rs,mine:rs.map(r=>r.nav/base.nav*100),sp:rs.map(r=>(r.sp/base.sp)*(fx?r.fx/base.fx:1)*100),tw:rs.map(r=>r.tw/base.tw*100)};
   }
+  function updateBenchmarkInfo(){
+    const b=benchSeries();
+    if(!b.rs.length){
+      ['bMine','bSp','bTw','alphaSp','alphaTw'].forEach(id=>$('#'+id).textContent='—');
+      return;
+    }
+    const i=Math.max(0,Math.min(benchIndex??(b.rs.length-1),b.rs.length-1));
+    $('#bMine').textContent=b.mine[i].toFixed(1);
+    $('#bSp').textContent=b.sp[i].toFixed(1);
+    $('#bTw').textContent=b.tw[i].toFixed(1);
+    $('#alphaSp').textContent=fmtPct(b.mine[i]-b.sp[i]);
+    $('#alphaTw').textContent=fmtPct(b.mine[i]-b.tw[i]);
+  }
+
   function renderBenchmark(){
     $('#fxBench').checked=!!state.settings.fxBench;
-    const b=benchSeries();benchIndex=benchIndex===null?Math.max(0,b.rs.length-1):Math.min(benchIndex,Math.max(0,b.rs.length-1));
-    if(b.rs.length){const i=b.rs.length-1;$('#bMine').textContent=b.mine[i].toFixed(1);$('#bSp').textContent=b.sp[i].toFixed(1);$('#bTw').textContent=b.tw[i].toFixed(1);$('#alphaSp').textContent=fmtPct(b.mine[i]-b.sp[i]);$('#alphaTw').textContent=fmtPct(b.mine[i]-b.tw[i]);}
-    else{['bMine','bSp','bTw','alphaSp','alphaTw'].forEach(id=>$('#'+id).textContent='—')}
+    const b=benchSeries();
+    benchIndex=benchIndex===null?Math.max(0,b.rs.length-1):Math.min(benchIndex,Math.max(0,b.rs.length-1));
+    updateBenchmarkInfo();
     redrawBench();
   }
-  $('#fxBench').addEventListener('change',e=>{state.settings.fxBench=e.target.checked;save();renderBenchmark()});
+
+  $('#fxBench').addEventListener('change',e=>{
+    state.settings.fxBench=e.target.checked;
+    save();
+    renderBenchmark();
+  });
+
   const redrawBench=setupCanvas($('#benchChart'),(ctx,w,h,dpr)=>{
-    const b=benchSeries();drawLines(ctx,w,h,dpr,[{data:b.mine,color:'#4aa3ff',width:3.2},{data:b.sp,color:'#39d98a'},{data:b.tw,color:'#f7c948'}],benchIndex,b.rs.map(r=>r.date.slice(5)));
-  },(x,w)=>{const b=benchSeries();if(!b.rs.length)return;benchIndex=Math.max(0,Math.min(b.rs.length-1,Math.round(x/w*(b.rs.length-1))));redrawBench()});
+    const b=benchSeries();
+    drawLines(ctx,w,h,dpr,[
+      {data:b.mine,color:'#4aa3ff',width:3.2},
+      {data:b.sp,color:'#39d98a'},
+      {data:b.tw,color:'#f7c948'}
+    ],benchIndex,b.rs.map(r=>r.date.slice(5)));
+  },(x,w)=>{
+    const b=benchSeries();
+    if(!b.rs.length)return;
+    benchIndex=Math.max(0,Math.min(b.rs.length-1,Math.round(x/w*(b.rs.length-1))));
+    updateBenchmarkInfo();
+    redrawBench();
+  });
 
   function renderRecords(){
     recalc();const body=$('#recordsBody');body.innerHTML='';
@@ -968,7 +1032,7 @@
     });
     cols.push(
       ['sp','sp500'],['tw','taiwan_index'],
-      ['asset','calc_total_asset_twd'],['nav','calc_nav'],['daily','calc_daily_return_pct'],
+      ['asset','calc_total_asset_twd'],['nav','calc_nav'],['daily','calc_daily_return_pct'],['dailyProfit','calc_daily_profit_twd'],
       ['invested','calc_invested_twd'],['profit','calc_profit_twd'],
       ['autoSpotExposure','calc_1x_spot_exposure_twd'],['overseasBrokerStockExposure','calc_overseas_broker_stock_twd'],['futExposure','calc_futures_exposure_twd'],['futLev','calc_futures_leverage'],['positionAccelerator','calc_position_accelerator']
     );
@@ -1005,6 +1069,7 @@
     if(key==='asset')return r.asset??'';
     if(key==='nav')return r.nav??'';
     if(key==='daily')return Number.isFinite(r.daily)?r.daily*100:'';
+    if(key==='dailyProfit')return r.dailyProfit??'';
     if(key==='invested')return r.invested??'';
     if(key==='profit')return r.profit??'';
     if(key==='autoSpotExposure')return r.autoSpotExposure??'';
@@ -1025,9 +1090,9 @@
 
   function exportSummaryCsv(){
     recalc();
-    const head=['date','total_asset_twd','nav','daily_return_pct','spot_1x_exposure_twd','leveraged_etf_supplement_twd','overseas_broker_stock_twd','deposit_twd','withdraw_twd','deposit_usd','withdraw_usd','net_flow_twd_equiv','invested_twd','profit_twd','futures_exposure_twd','futures_leverage','position_accelerator','usd_twd','sp500','taiwan_index'];
+    const head=['date','total_asset_twd','nav','daily_return_pct','daily_profit_twd','spot_1x_exposure_twd','leveraged_etf_supplement_twd','overseas_broker_stock_twd','deposit_twd','withdraw_twd','deposit_usd','withdraw_usd','net_flow_twd_equiv','invested_twd','profit_twd','futures_exposure_twd','futures_leverage','position_accelerator','usd_twd','sp500','taiwan_index'];
     const rows=state.records.map(r=>[
-      r.date,r.asset,r.nav,r.daily*100,r.autoSpotExposure||0,r.leveragedEtfSupplement||0,r.overseasBrokerStockExposure||0,r.deposit||0,r.withdraw||0,r.depositUsd||0,r.withdrawUsd||0,
+      r.date,r.asset,r.nav,r.daily*100,r.dailyProfit??'',r.autoSpotExposure||0,r.leveragedEtfSupplement||0,r.overseasBrokerStockExposure||0,r.deposit||0,r.withdraw||0,r.depositUsd||0,r.withdrawUsd||0,
       r.netFlow||0,r.invested,r.profit,r.futExposure,r.asset?r.futExposure/r.asset:0,r.positionAccelerator||0,r.fx,r.sp,r.tw
     ].map(csvEscape).join(','));
     download('investment-nav-summary.csv','\ufeff'+[head.join(','),...rows].join('\n'),'text/csv;charset=utf-8');
