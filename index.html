@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="投資淨值" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>投資淨值 Tracker v1.4</title>
+  <title>投資淨值 Tracker v1.5</title>
   <style>
     :root{
       --bg:#0b0f14; --panel:#121820; --panel2:#18212b; --text:#f5f7fa; --muted:#96a1ad;
@@ -63,6 +63,12 @@
     .acct{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:end}
     .acctMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
     .carryHint{display:block;font-size:11px;color:var(--accent);margin-top:4px}
+    .autoHint{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+    .autoHint.ok{color:var(--good)}
+    .autoHint.warn{color:#f6b73c}
+    .autoBtnRow{display:flex;justify-content:flex-end;margin:6px 0 10px}
+    .miniBtn{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:9px;padding:7px 10px;font-size:12px}
+
     .supplementRow{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:end;margin:2px 0 8px;padding:10px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
     .supplementTitle{font-weight:800}
     .subAcct{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:end;margin:-4px 0 8px;padding-left:16px}
@@ -173,7 +179,7 @@
       </div>
       <div class="chartbox"><canvas id="benchChart" class="chart"></canvas></div>
       <div class="legend"><span><i class="dot" style="background:#4aa3ff"></i>我的 NAV</span><span><i class="dot" style="background:#39d98a"></i>S&P 500</span><span><i class="dot" style="background:#f7c948"></i>台灣加權</span></div>
-      <div class="note">Benchmark 目前採手動輸入每日收盤值；日後可再改成自動抓資料。</div>
+      <div class="note">Benchmark 會優先自動帶入市場資料；若抓取失敗仍可手動輸入。</div>
     </div>
     <div class="grid g2" style="margin-top:12px">
       <div class="card"><div class="label">相對 S&P 500</div><div class="value" id="alphaSp">—</div></div>
@@ -186,7 +192,10 @@
       <div class="sectionTitle" style="margin-top:0"><h2>每日輸入</h2><span class="tag">TWD 為總資產基準</span></div>
       <div class="formRow">
         <label>日期<input type="date" id="inDate"></label>
-        <label>USD/TWD<input type="number" inputmode="decimal" step="0.001" id="inFx" placeholder="例：31.80"></label>
+        <label>USD/TWD<input type="number" inputmode="decimal" step="0.001" id="inFx" placeholder="例：31.80"><span class="autoHint" id="fxAutoHint"></span></label>
+      </div>
+      <div class="autoBtnRow">
+        <button class="miniBtn" id="refreshMarketData" type="button">↻ 自動抓取市場資料</button>
       </div>
       <div class="dateTools">
         <button id="prevDate" type="button">← 前一天</button>
@@ -219,8 +228,8 @@
 
       <div class="sectionTitle"><h2>Benchmark 收盤值</h2></div>
       <div class="formRow">
-        <label>S&P 500<input type="number" inputmode="decimal" step="0.01" id="inSp" placeholder="收盤指數"></label>
-        <label>台灣加權<input type="number" inputmode="decimal" step="0.01" id="inTw" placeholder="收盤指數"></label>
+        <label>S&P 500<input type="number" inputmode="decimal" step="0.01" id="inSp" placeholder="收盤指數"><span class="autoHint" id="spAutoHint"></span></label>
+        <label>台灣加權<input type="number" inputmode="decimal" step="0.01" id="inTw" placeholder="收盤指數"><span class="autoHint" id="twAutoHint"></span></label>
       </div>
 
       <div class="actions" style="margin-top:12px">
@@ -335,7 +344,7 @@
     {id:'tf2',name:'台股期貨2 權益',type:'tw_futures',currency:'TWD',enabled:true},
     {id:'ibkr',name:'IBKR 總資產',type:'overseas',currency:'USD',enabled:true}
   ];
-  let state=load()||{accounts:DEFAULT_ACCOUNTS,records:[],settings:{fxBench:false,hideAmounts:false}};
+  let state=load()||{accounts:DEFAULT_ACCOUNTS,records:[],settings:{fxBench:false,hideAmounts:false,marketApiUrl:'https://investment-market-api.arnold-chiu.workers.dev'}};
   let homeMode='nav', homeIndex=null, benchIndex=null, editingDate=null, draftRecord=null;
 
   const $=s=>document.querySelector(s);
@@ -361,8 +370,9 @@
   function migrateState(){
     if(!state.accounts)state.accounts=[];
     if(!state.records)state.records=[];
-    if(!state.settings)state.settings={fxBench:false,hideAmounts:false};
+    if(!state.settings)state.settings={fxBench:false,hideAmounts:false,marketApiUrl:'https://investment-market-api.arnold-chiu.workers.dev'};
     if(typeof state.settings.hideAmounts!=='boolean')state.settings.hideAmounts=false;
+    if(!state.settings.marketApiUrl)state.settings.marketApiUrl='https://investment-market-api.arnold-chiu.workers.dev';
     state.accounts.forEach(a=>{
       if(!a.type)a.type=inferType(a);
       if(!a.currency)a.currency='TWD';
@@ -429,12 +439,96 @@
       box.textContent='新增模式：目前沒有更早的紀錄可沿用。';
     }
   }
+
+  function autoHint(el,text,kind='ok'){
+    if(!el)return;
+    el.textContent=text||'';
+    el.classList.remove('ok','warn');
+    if(text)el.classList.add(kind);
+  }
+
+  function clearMarketHints(){
+    ['fxAutoHint','spAutoHint','twAutoHint'].forEach(id=>autoHint($('#'+id),''));
+    $$('[data-auto-hint]').forEach(el=>autoHint(el,''));
+  }
+
+  async function fetchMarketAutoFill(){
+    const date=$('#inDate').value||today();
+    const base=(state.settings.marketApiUrl||'').replace(/\/+$/,'');
+    if(!base){toast('尚未設定市場資料 API');return}
+
+    const btn=$('#refreshMarketData');
+    if(btn){btn.disabled=true;btn.textContent='抓取中…'}
+
+    try{
+      const res=await fetch(`${base}/market?date=${encodeURIComponent(date)}`,{cache:'no-store'});
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const data=await res.json();
+
+      if(data.usdTwd && Number.isFinite(Number(data.usdTwd.value))){
+        $('#inFx').value=data.usdTwd.value;
+        autoHint($('#fxAutoHint'),`✓ 自動 · 資料日 ${data.usdTwd.date||'—'}`);
+      }else autoHint($('#fxAutoHint'),'⚠ 自動取得失敗，可手動輸入','warn');
+
+      if(data.sp500 && Number.isFinite(Number(data.sp500.value))){
+        $('#inSp').value=data.sp500.value;
+        autoHint($('#spAutoHint'),`✓ 自動 · 資料日 ${data.sp500.date||'—'}`);
+      }else autoHint($('#spAutoHint'),'⚠ 自動取得失敗，可手動輸入','warn');
+
+      if(data.taiex && Number.isFinite(Number(data.taiex.value))){
+        $('#inTw').value=data.taiex.value;
+        autoHint($('#twAutoHint'),`✓ 自動 · 資料日 ${data.taiex.date||'—'}`);
+      }else autoHint($('#twAutoHint'),'⚠ 自動取得失敗，可手動輸入','warn');
+
+      const tf=data.futures?.taiwan;
+      if(tf && Number.isFinite(Number(tf.value))){
+        ['MTX','MXF','TX'].forEach(code=>{
+          const p=$(`[data-twprice="${code}"]`);
+          if(p)p.value=tf.value;
+          autoHint($(`[data-auto-hint="tw-${code}"]`),
+            `✓ 自動 · ${tf.date||'—'}${tf.contract?` · ${tf.contract}`:''}`);
+        });
+      }else{
+        ['MTX','MXF','TX'].forEach(code=>
+          autoHint($(`[data-auto-hint="tw-${code}"]`),'⚠ 自動取得失敗，可手動輸入','warn'));
+      }
+
+      const quotes={MES:data.futures?.mes,MNQ:data.futures?.mnq};
+      $$('#usFutures .fut').forEach(row=>{
+        const sym=(row.querySelector('[data-us="symbol"]')?.value||'').trim().toUpperCase();
+        const quote=quotes[sym];
+        if(!quote)return;
+        const price=row.querySelector('[data-us="price"]');
+        const hint=row.querySelector('[data-auto-hint="us"]');
+        if(Number.isFinite(Number(quote.value))){
+          if(price)price.value=quote.value;
+          autoHint(hint,`✓ 自動 · ${quote.date||'—'}`);
+        }else{
+          autoHint(hint,'⚠ 自動取得失敗，可手動輸入','warn');
+        }
+      });
+
+      toast('市場資料已自動帶入');
+    }catch(err){
+      autoHint($('#fxAutoHint'),'⚠ 自動取得失敗，可手動輸入','warn');
+      autoHint($('#spAutoHint'),'⚠ 自動取得失敗，可手動輸入','warn');
+      autoHint($('#twAutoHint'),'⚠ 自動取得失敗，可手動輸入','warn');
+      $$('[data-auto-hint]').forEach(el=>autoHint(el,'⚠ 自動取得失敗，可手動輸入','warn'));
+      console.error(err);
+      toast('市場資料抓取失敗，可手動輸入');
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent='↻ 自動抓取市場資料'}
+    }
+  }
+
   function startNewRecord(dateStr=today(),navigate=true){
     editingDate=null;
     draftRecord=makeCarryDraft(dateStr);
     if(navigate)page('input');else renderInput();
+    setTimeout(fetchMarketAutoFill,0);
   }
   function applyDraft(d){
+    clearMarketHints();
     if(!d)return;
     $('#inDate').value=d.date||today();
     $('#inFx').value=d.fx??'';
@@ -517,7 +611,7 @@
     const tw=$('#twFutures');tw.innerHTML='';
     [['MTX','微台'],['MXF','小台'],['TX','台指']].forEach(([code,name])=>{
       const row=document.createElement('div');row.className='fut';
-      row.innerHTML=`<label>${name}<input data-twprice="${code}" type="number" inputmode="decimal" step="1" placeholder="點位"></label>
+      row.innerHTML=`<label>${name}<input data-twprice="${code}" type="number" inputmode="decimal" step="1" placeholder="點位"><span class="autoHint" data-auto-hint="tw-${code}"></span></label>
       <label>口數<input data-twqty="${code}" type="number" inputmode="numeric" step="1" value="0"></label>
       <div class="small muted" style="padding-bottom:14px">× NT$${TW_MULT[code]}/點</div>`;
       tw.appendChild(row);
@@ -534,7 +628,7 @@
       const row=document.createElement('div');row.className='fut';row.dataset.i=i;
       row.innerHTML=`<label>商品<input data-us="symbol" value="${f.symbol||''}" placeholder="MES"></label>
       <label>口數<input data-us="qty" type="number" step="1" value="${f.qty||0}"></label>
-      <label>價格<input data-us="price" type="number" step="0.01" value="${f.price||0}"></label>
+      <label>價格<input data-us="price" type="number" step="0.01" value="${f.price||0}"><span class="autoHint" data-auto-hint="us"></span></label>
       <label style="grid-column:2/4">Multiplier<input data-us="mult" type="number" step="0.01" value="${f.mult||1}"></label>`;
       wrap.appendChild(row);
     });
@@ -568,6 +662,7 @@
     };
   }
   function loadForm(date){
+    clearMarketHints();
     const r=state.records.find(x=>x.date===date);if(!r)return;
     $('#inDate').value=r.date;$('#inFx').value=r.fx||'';
     $('#inLeveragedEtfSupplement').value=r.leveragedEtfSupplement||0;
@@ -595,6 +690,7 @@
     };
     renderInput();
   }
+  $('#refreshMarketData').addEventListener('click',fetchMarketAutoFill);
   $('#clearForm').addEventListener('click',clearForm);
   $('#carryPrev').addEventListener('click',()=>{
     if(editingDate){toast('編輯模式不會覆蓋目前內容；請先用＋新增紀錄');return}
@@ -603,17 +699,17 @@
 
   $('#inDate').addEventListener('change',()=>{
     if(editingDate){updateEntryMode();return}
-    draftRecord=makeCarryDraft($('#inDate').value||today());renderInput();
+    draftRecord=makeCarryDraft($('#inDate').value||today());renderInput();setTimeout(fetchMarketAutoFill,0);
   });
   function moveInputDate(days){
     const d=addDays($('#inDate').value||today(),days);
     if(editingDate){$('#inDate').value=d;updateEntryMode()}
-    else {draftRecord=makeCarryDraft(d);renderInput()}
+    else {draftRecord=makeCarryDraft(d);renderInput();setTimeout(fetchMarketAutoFill,0)}
   }
   $('#prevDate').addEventListener('click',()=>moveInputDate(-1));
   $('#todayDate').addEventListener('click',()=>{
     if(editingDate){$('#inDate').value=today();updateEntryMode()}
-    else {draftRecord=makeCarryDraft(today());renderInput()}
+    else {draftRecord=makeCarryDraft(today());renderInput();setTimeout(fetchMarketAutoFill,0)}
   });
   $('#nextDate').addEventListener('click',()=>moveInputDate(1));
 
